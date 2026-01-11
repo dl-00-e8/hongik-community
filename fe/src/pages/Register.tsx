@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -27,10 +28,12 @@ const Register = () => {
     password: '',
     confirmPassword: '',
     name: '',
-    role: '',
+    role: '' as 'user' | 'club_admin' | 'admin' | '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { signUp } = useAuth();
+  const navigate = useNavigate();
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -48,16 +51,41 @@ const Register = () => {
       return;
     }
 
+    if (!formData.role) {
+      toast({
+        title: '역할 선택 필요',
+        description: '역할을 선택해주세요.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsLoading(true);
 
-    // Mock register - replace with actual auth later
-    setTimeout(() => {
-      toast({
-        title: '회원가입 기능 준비 중',
-        description: '백엔드 연동 후 사용 가능합니다.',
+    try {
+      await signUp({
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
+        role: formData.role as 'user' | 'club_admin' | 'admin',
       });
+
+      toast({
+        title: '회원가입 성공',
+        description: '이메일을 확인하여 인증을 완료해주세요.',
+      });
+
+      // 이메일 인증이 필요한 경우 로그인 페이지로 이동
+      navigate('/login');
+    } catch (error) {
+      toast({
+        title: '회원가입 실패',
+        description: error instanceof Error ? error.message : '회원가입에 실패했습니다.',
+        variant: 'destructive',
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
