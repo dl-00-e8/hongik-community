@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { isHongikEmail, ALLOWED_EMAIL_DOMAINS } from '@/lib/utils/validation';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -41,6 +42,16 @@ const Register = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 홍익대 이메일 도메인 검증
+    if (!isHongikEmail(formData.email)) {
+      toast({
+        title: '이메일 도메인 오류',
+        description: `홍익대학교 이메일(${ALLOWED_EMAIL_DOMAINS.map(d => '@' + d).join(' 또는 ')})만 사용 가능합니다.`,
+        variant: 'destructive',
+      });
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       toast({
@@ -116,11 +127,14 @@ const Register = () => {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="email@university.ac.kr"
+                  placeholder="example@g.hongik.ac.kr"
                   value={formData.email}
                   onChange={(e) => handleChange('email', e.target.value)}
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  홍익대학교 이메일(@g.hongik.ac.kr 또는 @hongik.ac.kr)만 사용 가능합니다
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">비밀번호</Label>
