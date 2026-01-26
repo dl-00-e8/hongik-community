@@ -1,27 +1,52 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { signInSchema, type SignInFormData } from '@/lib/schemas/auth.schema';
+import { Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm<SignInFormData>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+    mode: 'onChange', // Validate on change for real-time feedback
+  });
+
+  const onSubmit = async (data: SignInFormData) => {
     setIsLoading(true);
 
     try {
-      await signIn(email, password);
+      await signIn(data.email, data.password);
       toast({
         title: '로그인 성공',
         description: '환영합니다!',
@@ -48,43 +73,78 @@ const Login = () => {
               총동아리연합회 계정으로 로그인하세요
             </CardDescription>
           </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">이메일</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="example@g.hongik.ac.kr"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <CardContent className="space-y-4">
+                {/* 이메일 필드 */}
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>이메일</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="example@g.hongik.ac.kr"
+                          {...field}
+                          disabled={isLoading}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">비밀번호</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="비밀번호를 입력하세요"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
+
+                {/* 비밀번호 필드 */}
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>비밀번호</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            type={showPassword ? 'text' : 'password'}
+                            placeholder="비밀번호를 입력하세요"
+                            {...field}
+                            disabled={isLoading}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() => setShowPassword(!showPassword)}
+                            disabled={isLoading}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-            </CardContent>
-            <CardFooter className="flex flex-col gap-4">
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? '로그인 중...' : '로그인'}
-              </Button>
-              <p className="text-sm text-muted-foreground text-center">
-                계정이 없으신가요?{' '}
-                <Link to="/register" className="text-accent hover:underline">
-                  회원가입
-                </Link>
-              </p>
-            </CardFooter>
-          </form>
+              </CardContent>
+              <CardFooter className="flex flex-col gap-4">
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? '로그인 중...' : '로그인'}
+                </Button>
+                <p className="text-sm text-muted-foreground text-center">
+                  계정이 없으신가요?{' '}
+                  <Link to="/register" className="text-accent hover:underline">
+                    회원가입
+                  </Link>
+                </p>
+              </CardFooter>
+            </form>
+          </Form>
         </Card>
       </div>
     </Layout>

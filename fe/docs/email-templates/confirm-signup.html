@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>회원가입 확인</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 0;">
+        <table role="presentation" style="width: 600px; max-width: 100%; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 30px 40px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px 8px 0 0;">
+              <div style="width: 60px; height: 60px; margin: 0 auto 20px; background-color: white; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M9 11C11.2091 11 13 9.20914 13 7C13 4.79086 11.2091 3 9 3C6.79086 3 5 4.79086 5 7C5 9.20914 6.79086 11 9 11Z" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89318 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <h1 style="margin: 0; color: white; font-size: 28px; font-weight: bold;">
+                홍익대학교 총동아리연합회
+              </h1>
+              <p style="margin: 10px 0 0; color: rgba(255,255,255,0.9); font-size: 16px;">
+                Club Federation Platform
+              </p>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="margin: 0 0 20px; color: #1a1a1a; font-size: 24px; font-weight: 600;">
+                회원가입을 환영합니다! 🎉
+              </h2>
+
+              <p style="margin: 0 0 20px; color: #4a5568; font-size: 16px; line-height: 1.6;">
+                안녕하세요,<br><br>
+                홍익대학교 총동아리연합회 플랫폼에 가입해 주셔서 감사합니다.<br>
+                아래 버튼을 클릭하여 이메일 주소를 인증하고 회원가입을 완료해 주세요.
+              </p>
+
+              <!-- Button -->
+              <table role="presentation" style="margin: 30px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="{{ .ConfirmationURL }}"
+                       style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);">
+                      이메일 인증하기
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 20px 0 0; color: #718096; font-size: 14px; line-height: 1.6;">
+                버튼이 작동하지 않는다면 아래 링크를 복사하여 브라우저에 직접 붙여넣어 주세요:
+              </p>
+              <p style="margin: 10px 0 0; padding: 12px; background-color: #f7fafc; border-radius: 6px; color: #4a5568; font-size: 13px; word-break: break-all; border-left: 3px solid #667eea;">
+                {{ .ConfirmationURL }}
+              </p>
+
+              <!-- Info Box -->
+              <div style="margin-top: 30px; padding: 20px; background-color: #fef5e7; border-radius: 8px; border-left: 4px solid #f39c12;">
+                <p style="margin: 0; color: #7d6608; font-size: 14px; line-height: 1.6;">
+                  <strong>⏰ 중요:</strong> 이 링크는 24시간 동안 유효합니다.<br>
+                  시간이 경과하면 새로운 인증 링크를 요청해 주세요.
+                </p>
+              </div>
+
+              <div style="margin-top: 30px; padding-top: 30px; border-top: 1px solid #e2e8f0;">
+                <p style="margin: 0 0 10px; color: #4a5568; font-size: 14px; line-height: 1.6;">
+                  <strong>가입 정보:</strong>
+                </p>
+                <ul style="margin: 0; padding-left: 20px; color: #718096; font-size: 14px; line-height: 1.8;">
+                  <li>이메일: {{ .Email }}</li>
+                  <li>가입 시간: {{ .ConfirmationSentAt }}</li>
+                </ul>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 30px 40px; background-color: #f7fafc; border-radius: 0 0 8px 8px;">
+              <p style="margin: 0 0 10px; color: #718096; font-size: 13px; text-align: center;">
+                본인이 요청하지 않은 경우 이 이메일을 무시하셔도 됩니다.
+              </p>
+              <p style="margin: 0; color: #a0aec0; font-size: 12px; text-align: center;">
+                © 2026 홍익대학교 총동아리연합회. All rights reserved.
+              </p>
+              <div style="margin-top: 15px; text-align: center;">
+                <a href="https://your-domain.com" style="color: #667eea; text-decoration: none; font-size: 12px; margin: 0 10px;">웹사이트</a>
+                <span style="color: #cbd5e0;">|</span>
+                <a href="https://your-domain.com/about" style="color: #667eea; text-decoration: none; font-size: 12px; margin: 0 10px;">소개</a>
+                <span style="color: #cbd5e0;">|</span>
+                <a href="mailto:support@hongik.ac.kr" style="color: #667eea; text-decoration: none; font-size: 12px; margin: 0 10px;">문의하기</a>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

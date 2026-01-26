@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -12,6 +13,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import {
   Card,
   CardContent,
   CardDescription,
@@ -19,66 +29,47 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { isHongikEmail, ALLOWED_EMAIL_DOMAINS } from '@/lib/utils/validation';
+import { signUpSchema, type SignUpFormData } from '@/lib/schemas/auth.schema';
+import { validatePasswordStrength } from '@/lib/utils/validation';
+import { Eye, EyeOff, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 
 const Register = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    name: '',
-    role: '' as 'user' | 'club_admin' | 'admin' | '',
-  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
-  const handleChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
+  const form = useForm<SignUpFormData>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      role: undefined,
+    },
+    mode: 'onChange', // Validate on change for real-time feedback
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Password strength indicator
+  const password = form.watch('password');
+  const passwordValidation = password ? validatePasswordStrength(password) : null;
 
-    // 홍익대 이메일 도메인 검증
-    if (!isHongikEmail(formData.email)) {
-      toast({
-        title: '이메일 도메인 오류',
-        description: `홍익대학교 이메일(${ALLOWED_EMAIL_DOMAINS.map(d => '@' + d).join(' 또는 ')})만 사용 가능합니다.`,
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: '비밀번호 불일치',
-        description: '비밀번호가 일치하지 않습니다.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!formData.role) {
-      toast({
-        title: '역할 선택 필요',
-        description: '역할을 선택해주세요.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
+  const onSubmit = async (data: SignUpFormData) => {
     setIsLoading(true);
 
     try {
       await signUp({
-        email: formData.email,
-        password: formData.password,
-        name: formData.name,
-        role: formData.role as 'user' | 'club_admin' | 'admin',
+        email: data.email,
+        password: data.password,
+        confirmPassword: data.confirmPassword,
+        name: data.name,
+        role: data.role,
       });
 
       toast({
@@ -109,87 +100,222 @@ const Register = () => {
               총동아리연합회 계정을 만드세요
             </CardDescription>
           </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">이름</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="이름을 입력하세요"
-                  value={formData.name}
-                  onChange={(e) => handleChange('name', e.target.value)}
-                  required
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <CardContent className="space-y-4">
+                {/* 이름 필드 */}
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>이름</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="이름을 입력하세요"
+                          {...field}
+                          disabled={isLoading}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">이메일</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="example@g.hongik.ac.kr"
-                  value={formData.email}
-                  onChange={(e) => handleChange('email', e.target.value)}
-                  required
+
+                {/* 이메일 필드 */}
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>이메일</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="example@g.hongik.ac.kr"
+                          {...field}
+                          disabled={isLoading}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        홍익대학교 이메일(@g.hongik.ac.kr 또는 @hongik.ac.kr)만 사용 가능합니다
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-                <p className="text-xs text-muted-foreground">
-                  홍익대학교 이메일(@g.hongik.ac.kr 또는 @hongik.ac.kr)만 사용 가능합니다
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">비밀번호</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="비밀번호를 입력하세요"
-                  value={formData.password}
-                  onChange={(e) => handleChange('password', e.target.value)}
-                  required
+
+                {/* 비밀번호 필드 */}
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>비밀번호</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            type={showPassword ? 'text' : 'password'}
+                            placeholder="비밀번호를 입력하세요"
+                            {...field}
+                            disabled={isLoading}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() => setShowPassword(!showPassword)}
+                            disabled={isLoading}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </FormControl>
+                      <FormDescription className="space-y-1">
+                        <div className="text-xs">
+                          • 최소 8자 이상
+                        </div>
+                        <div className="text-xs">
+                          • 영문자 + 숫자 포함
+                        </div>
+                      </FormDescription>
+                      <FormMessage />
+
+                      {/* Password Strength Indicator */}
+                      {password && passwordValidation && (
+                        <div className="mt-2">
+                          {passwordValidation.isValid ? (
+                            <Alert className={
+                              passwordValidation.strength === 'strong'
+                                ? 'border-green-500 bg-green-50 dark:bg-green-950'
+                                : passwordValidation.strength === 'medium'
+                                ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-950'
+                                : 'border-orange-500 bg-orange-50 dark:bg-orange-950'
+                            }>
+                              <AlertDescription className="flex items-center gap-2 text-xs">
+                                {passwordValidation.strength === 'strong' && (
+                                  <>
+                                    <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                    <span className="text-green-600">강력한 비밀번호</span>
+                                  </>
+                                )}
+                                {passwordValidation.strength === 'medium' && (
+                                  <>
+                                    <AlertCircle className="h-3 w-3 text-yellow-600" />
+                                    <span className="text-yellow-600">보통 비밀번호</span>
+                                  </>
+                                )}
+                                {passwordValidation.strength === 'weak' && (
+                                  <>
+                                    <AlertCircle className="h-3 w-3 text-orange-600" />
+                                    <span className="text-orange-600">약한 비밀번호</span>
+                                  </>
+                                )}
+                              </AlertDescription>
+                            </Alert>
+                          ) : (
+                            <Alert variant="destructive">
+                              <AlertDescription className="flex items-center gap-2 text-xs">
+                                <XCircle className="h-3 w-3" />
+                                <span>{passwordValidation.message}</span>
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                        </div>
+                      )}
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">비밀번호 확인</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="비밀번호를 다시 입력하세요"
-                  value={formData.confirmPassword}
-                  onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                  required
+
+                {/* 비밀번호 확인 필드 */}
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>비밀번호 확인</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            placeholder="비밀번호를 다시 입력하세요"
+                            {...field}
+                            disabled={isLoading}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            disabled={isLoading}
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="role">역할</Label>
-                <Select
-                  value={formData.role}
-                  onValueChange={(value) => handleChange('role', value)}
+
+                {/* 역할 선택 필드 */}
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>역할</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        disabled={isLoading}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="역할을 선택하세요" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="user">일반 사용자</SelectItem>
+                          <SelectItem value="club_admin">동아리 관리자</SelectItem>
+                          <SelectItem value="admin">총 관리자</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        동아리 관리자 및 총 관리자는 승인이 필요합니다
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+              <CardFooter className="flex flex-col gap-4">
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isLoading}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="역할을 선택하세요" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="user">일반 사용자</SelectItem>
-                    <SelectItem value="club_admin">동아리 관리자</SelectItem>
-                    <SelectItem value="admin">총 관리자</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  동아리 관리자 및 총 관리자는 승인이 필요합니다
+                  {isLoading ? '가입 중...' : '회원가입'}
+                </Button>
+                <p className="text-sm text-muted-foreground text-center">
+                  이미 계정이 있으신가요?{' '}
+                  <Link to="/login" className="text-accent hover:underline">
+                    로그인
+                  </Link>
                 </p>
-              </div>
-            </CardContent>
-            <CardFooter className="flex flex-col gap-4">
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? '가입 중...' : '회원가입'}
-              </Button>
-              <p className="text-sm text-muted-foreground text-center">
-                이미 계정이 있으신가요?{' '}
-                <Link to="/login" className="text-accent hover:underline">
-                  로그인
-                </Link>
-              </p>
-            </CardFooter>
-          </form>
+              </CardFooter>
+            </form>
+          </Form>
         </Card>
       </div>
     </Layout>

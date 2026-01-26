@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 
 .DS_Store
+.env
+
+.mcp.json
+
+supabase/
