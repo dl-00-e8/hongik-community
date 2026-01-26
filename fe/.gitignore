@@ -23,9 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
+# Environment variables and MCP
 .DS_Store
 .env
-
 .mcp.json
-
 supabase/

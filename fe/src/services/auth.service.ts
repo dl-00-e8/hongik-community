@@ -62,6 +62,7 @@ export const authService = {
 
     // 2. Supabase Auth를 통한 사용자 생성
     // 트리거가 자동으로 public.users 테이블에 레코드를 생성합니다
+    const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -70,7 +71,7 @@ export const authService = {
           name,
           role,
         },
-        emailRedirectTo: `${window.location.origin}/`,
+        emailRedirectTo: `${appUrl}/`,
       },
     });
 
@@ -182,8 +183,9 @@ export const authService = {
    * 비밀번호 재설정 이메일 전송
    */
   async resetPassword(email: string) {
+    const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/`,
+      redirectTo: `${appUrl}/`,
     });
 
     if (error) {
