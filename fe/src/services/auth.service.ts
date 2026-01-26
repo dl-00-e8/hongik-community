@@ -29,6 +29,41 @@ export interface User {
 
 export const authService = {
   /**
+   * Session에서 직접 사용자 프로필 가져오기 (auth.getUser() 우회)
+   */
+  async getUserProfileById(userId: string): Promise<User | null> {
+    try {
+      console.log('🔍 getUserProfileById() called for:', userId);
+
+      const { data: userData, error: dbError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      console.log('🔍 Database query result:', {
+        hasData: !!userData,
+        error: dbError
+      });
+
+      if (dbError) {
+        console.error('❌ Error fetching user profile:', dbError);
+        throw new Error(`DB Error: ${dbError.message}`);
+      }
+
+      if (!userData) {
+        console.error('❌ No user profile found for id:', userId);
+        return null;
+      }
+
+      console.log('✅ User profile loaded:', userData);
+      return userData;
+    } catch (error) {
+      console.error('❌ getUserProfileById() failed:', error);
+      throw error;
+    }
+  },
+  /**
    * 회원가입
    */
   async signUp({ email, password, confirmPassword, name, role }: SignUpData) {
@@ -145,28 +180,25 @@ export const authService = {
 
   /**
    * 현재 로그인된 사용자 정보 가져오기
+   * 참고: 이 메서드는 auth.getUser() timeout 문제로 인해 더 이상 사용하지 않습니다.
+   * 대신 getUserProfileById()를 session.user.id와 함께 사용하세요.
    */
   async getCurrentUser(): Promise<User | null> {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    console.warn('⚠️ getCurrentUser() is deprecated. Use getUserProfileById() instead.');
 
-    if (!user) {
-      return null;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        console.log('ℹ️ No session');
+        return null;
+      }
+
+      return await this.getUserProfileById(session.user.id);
+    } catch (error) {
+      console.error('❌ getCurrentUser() failed:', error);
+      throw error;
     }
-
-    // users 테이블에서 추가 정보 가져오기
-    const { data: userData, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    return userData;
   },
 
   /**
