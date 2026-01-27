@@ -16,11 +16,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-console.log('🔧 Supabase client initialized:', {
-  url: supabaseUrl,
-  hasKey: !!supabaseAnonKey
-});
-
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
@@ -31,9 +26,30 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 });
 
-// 디버깅 함수를 전역으로 노출
+// Supabase 초기화 완료를 보장하는 헬퍼
+let initializationPromise: Promise<void> | null = null;
+
+export const ensureSupabaseInitialized = async (): Promise<void> => {
+  if (initializationPromise) {
+    return initializationPromise;
+  }
+
+  initializationPromise = (async () => {
+    try {
+      // getSession()을 호출하여 초기화 완료를 기다림
+      // 이렇게 하면 내부적으로 _initialize와 _recoverAndRefresh가 완료됨
+      await supabase.auth.getSession();
+    } catch (error) {
+      console.error('Supabase initialization failed:', error);
+    }
+  })();
+
+  return initializationPromise;
+};
+
+// 디버깅 함수를 전역으로 노출 (개발 환경)
 if (typeof window !== 'undefined') {
   (window as any).debugAuth = debugAuth;
   (window as any).clearAuthStorage = clearAuthStorage;
-  console.log('🔧 Debug functions available: debugAuth(), clearAuthStorage()');
+  (window as any).ensureSupabaseInitialized = ensureSupabaseInitialized;
 }

@@ -29,39 +29,36 @@ export interface User {
 
 export const authService = {
   /**
-   * Session에서 직접 사용자 프로필 가져오기 (auth.getUser() 우회)
+   * 사용자 프로필 가져오기
    */
-  async getUserProfileById(userId: string): Promise<User | null> {
-    try {
-      console.log('🔍 getUserProfileById() called for:', userId);
+  async getUserProfileById(userId: string, retries = 2): Promise<User | null> {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const { data: userData, error: dbError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', userId)
+          .single();
 
-      const { data: userData, error: dbError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
+        if (dbError) {
+          // RLS 에러인 경우 재시도
+          if (dbError.code === 'PGRST116' && attempt < retries) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+            continue;
+          }
+          throw new Error(`Database error: ${dbError.message}`);
+        }
 
-      console.log('🔍 Database query result:', {
-        hasData: !!userData,
-        error: dbError
-      });
-
-      if (dbError) {
-        console.error('❌ Error fetching user profile:', dbError);
-        throw new Error(`DB Error: ${dbError.message}`);
+        return userData || null;
+      } catch (error) {
+        if (attempt === retries) {
+          throw error;
+        }
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
-
-      if (!userData) {
-        console.error('❌ No user profile found for id:', userId);
-        return null;
-      }
-
-      console.log('✅ User profile loaded:', userData);
-      return userData;
-    } catch (error) {
-      console.error('❌ getUserProfileById() failed:', error);
-      throw error;
     }
+
+    return null;
   },
   /**
    * 회원가입
@@ -124,10 +121,7 @@ export const authService = {
 
     // 3. 트리거가 users 테이블에 레코드를 생성할 때까지 잠시 대기
     // 프로필이 생성되었는지 확인
-    let retries = 5;
-    let profileCreated = false;
-
-    for (let i = 0; i < retries; i++) {
+    for (let i = 0; i < 5; i++) {
       if (i > 0) {
         await new Promise(resolve => setTimeout(resolve, 300));
       }
@@ -139,13 +133,8 @@ export const authService = {
         .single();
 
       if (userData && !error) {
-        profileCreated = true;
         break;
       }
-    }
-
-    if (!profileCreated) {
-      console.warn('프로필 생성 확인 실패, 하지만 계속 진행합니다.');
     }
 
     return authData;
@@ -180,24 +169,20 @@ export const authService = {
 
   /**
    * 현재 로그인된 사용자 정보 가져오기
-   * 참고: 이 메서드는 auth.getUser() timeout 문제로 인해 더 이상 사용하지 않습니다.
-   * 대신 getUserProfileById()를 session.user.id와 함께 사용하세요.
+   * @deprecated Use getUserProfileById() with session.user.id instead
    */
   async getCurrentUser(): Promise<User | null> {
-    console.warn('⚠️ getCurrentUser() is deprecated. Use getUserProfileById() instead.');
-
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error } = await supabase.auth.getSession();
 
-      if (!session?.user) {
-        console.log('ℹ️ No session');
+      if (error || !session?.user) {
         return null;
       }
 
       return await this.getUserProfileById(session.user.id);
     } catch (error) {
-      console.error('❌ getCurrentUser() failed:', error);
-      throw error;
+      console.error('Failed to get current user:', error);
+      return null;
     }
   },
 
@@ -205,10 +190,13 @@ export const authService = {
    * 세션 확인
    */
   async getSession() {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    return session;
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      return error ? null : session;
+    } catch (error) {
+      console.error('Failed to get session:', error);
+      return null;
+    }
   },
 
   /**

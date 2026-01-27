@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { supabase, ensureSupabaseInitialized } from '@/lib/supabase';
 import { authService, User } from '@/services/auth.service';
 
 interface AuthContextType {
@@ -24,116 +24,106 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // 사용자 프로필을 로드하는 헬퍼 함수
+  const loadUserProfile = async (userId: string): Promise<User | null> => {
+    try {
+      return await authService.getUserProfileById(userId);
+    } catch (error) {
+      console.error('Failed to load user profile:', error);
+      return null;
+    }
+  };
+
   useEffect(() => {
-    // 초기 세션 확인
-    const initializeAuth = async () => {
-      console.log('🚀 Initializing auth...');
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+    let isMounted = true;
 
-        if (session?.user) {
-          console.log('🔐 Session found:', session.user.email, 'id:', session.user.id);
-          setSupabaseUser(session.user);
+    const initialize = async () => {
+      // 1. Supabase 초기화 완료를 기다림
+      await ensureSupabaseInitialized();
 
-          try {
-            // auth.getUser() 대신 session에서 직접 user.id를 사용
-            const userData = await authService.getUserProfileById(session.user.id);
-            console.log('👤 initializeAuth - User data loaded:', userData);
-            setUser(userData);
-          } catch (userError) {
-            console.error('❌ initializeAuth - Error loading user data:', userError);
-            // 프로필 로드 실패 시에도 세션은 유지하되, user는 null로 설정
-            setUser(null);
-          }
-        } else {
-          console.log('ℹ️ No session found');
-          setSupabaseUser(null);
-          setUser(null);
+      if (!isMounted) return;
+
+      // 2. 현재 세션 확인
+      const { data: { session }, error } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error('Error getting session:', error);
+      }
+
+      if (session?.user) {
+        setSupabaseUser(session.user);
+
+        const userData = await loadUserProfile(session.user.id);
+        if (isMounted) {
+          setUser(userData);
+          setLoading(false);
         }
-      } catch (error) {
-        console.error('❌ Auth initialization error:', error);
+      } else {
         setSupabaseUser(null);
         setUser(null);
-      } finally {
-        console.log('✅ Auth initialization complete');
         setLoading(false);
       }
+
+      // 3. 인증 상태 변경 리스너 등록
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (!isMounted) return;
+
+        if (event === 'SIGNED_OUT') {
+          setSupabaseUser(null);
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (session?.user) {
+            setSupabaseUser(session.user);
+
+            const userData = await loadUserProfile(session.user.id);
+            if (isMounted) {
+              setUser(userData);
+              setLoading(false);
+            }
+          }
+        }
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
     };
 
-    initializeAuth();
+    let cleanup: (() => void) | undefined;
 
-    // 인증 상태 변경 리스너
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔄 Auth state changed:', event, 'session:', session?.user?.email);
-
-      try {
-        if (session?.user) {
-          setSupabaseUser(session.user);
-          setLoading(true);
-          console.log('🔄 Loading user data in onAuthStateChange for user:', session.user.id);
-
-          try {
-            // auth.getUser() 대신 session에서 직접 user.id를 사용
-            const userData = await authService.getUserProfileById(session.user.id);
-            console.log('✅ onAuthStateChange - User data loaded:', userData);
-            setUser(userData);
-          } catch (userError) {
-            console.error('❌ onAuthStateChange - Error loading user data:', userError);
-            console.error('❌ Error details:', {
-              message: userError instanceof Error ? userError.message : 'Unknown error',
-              stack: userError instanceof Error ? userError.stack : null
-            });
-            setUser(null);
-          }
-        } else {
-          console.log('ℹ️ No session in onAuthStateChange');
-          setSupabaseUser(null);
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('❌ Unexpected error in onAuthStateChange:', error);
-        setSupabaseUser(null);
-        setUser(null);
-      } finally {
-        console.log('🔄 onAuthStateChange complete - setting loading to false');
-        setLoading(false);
-      }
+    initialize().then((cleanupFn) => {
+      cleanup = cleanupFn;
     });
 
     return () => {
-      subscription.unsubscribe();
+      isMounted = false;
+      if (cleanup) cleanup();
     };
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    setLoading(true);
+
     try {
-      console.log('🔐 Signing in:', email);
-      setLoading(true);
+      const data = await authService.signIn({ email, password });
 
-      const { data } = await authService.signIn({ email, password });
-      console.log('✅ Sign in successful, session:', data.session?.user?.email);
-
-      // 즉시 user 데이터 로드 (onAuthStateChange를 기다리지 않음)
+      // 즉각적인 UI 업데이트를 위해 상태를 미리 설정
       if (data.session?.user) {
         setSupabaseUser(data.session.user);
-        try {
-          const userData = await authService.getUserProfileById(data.session.user.id);
-          console.log('✅ User data loaded after sign in:', userData);
-          setUser(userData);
-        } catch (userError) {
-          console.error('❌ Error loading user data after sign in:', userError);
-          setUser(null);
-        }
+        const userData = await loadUserProfile(data.session.user.id);
+        setUser(userData);
       }
-    } catch (error) {
-      console.error('❌ Sign in failed:', error);
-      throw error;
-    } finally {
+
       setLoading(false);
+    } catch (error) {
+      setLoading(false);
+      throw error;
     }
   };
 
@@ -157,8 +147,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(true);
     try {
       await authService.signOut();
+      // onAuthStateChange가 자동으로 상태를 정리합니다
+    } catch (error) {
+      // 에러가 발생해도 로컬 상태는 정리
       setUser(null);
       setSupabaseUser(null);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -172,6 +166,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signUp,
     signOut,
   };
+
+  // 디버깅을 위해 window에 노출
+  if (typeof window !== 'undefined') {
+    (window as any).authDebug = () => {
+      console.log('🔍 AuthContext State:', {
+        user: user,
+        supabaseUser: supabaseUser,
+        loading: loading,
+        hasUser: !!user,
+        hasSupabaseUser: !!supabaseUser,
+      });
+    };
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

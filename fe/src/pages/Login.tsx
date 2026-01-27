@@ -46,28 +46,20 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      console.log('📝 Submitting login form');
       await signIn(data.email, data.password);
-      console.log('✅ Login successful');
 
       toast({
         title: '로그인 성공',
         description: '환영합니다!',
       });
 
-      // AuthContext의 onAuthStateChange가 user를 설정할 때까지 대기
-      // 약간의 딜레이 후 리다이렉트
-      await new Promise(resolve => setTimeout(resolve, 500));
-      console.log('🔄 Navigating to home');
       navigate('/', { replace: true });
     } catch (error) {
-      console.error('❌ Login error:', error);
       toast({
         title: '로그인 실패',
         description: error instanceof Error ? error.message : '로그인에 실패했습니다.',
         variant: 'destructive',
       });
-    } finally {
       setIsLoading(false);
     }
   };

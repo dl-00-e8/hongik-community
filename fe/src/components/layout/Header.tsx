@@ -21,9 +21,6 @@ const Header = () => {
   const { user, loading, signOut } = useAuth();
   const { toast } = useToast();
 
-  // 디버깅: user 상태 변화 추적
-  console.log('🎨 Header render - loading:', loading, 'user:', user ? `${user.name} (${user.role})` : 'null');
-
   const navItems = [
     { path: '/', label: '홈' },
     { path: '/clubs', label: '동아리 목록' },
