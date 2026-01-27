@@ -15,6 +15,7 @@ import NotFound from "./pages/NotFound";
 import CreateClub from "./pages/admin/CreateClub";
 import AdminRequests from "./pages/admin/AdminRequests";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import RoleChangeRequest from "./pages/RoleChangeRequest";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,16 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/about" element={<About />} />
+
+            {/* Role Change Request */}
+            <Route
+              path="/role-change/request"
+              element={
+                <ProtectedRoute>
+                  <RoleChangeRequest />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Admin Routes - Protected */}
             <Route

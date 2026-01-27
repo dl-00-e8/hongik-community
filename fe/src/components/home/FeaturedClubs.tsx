@@ -1,12 +1,23 @@
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import ClubCard from '@/components/clubs/ClubCard';
 import { ArrowRight } from 'lucide-react';
-import { mockClubs } from '@/data/mockData';
+import { ClubsService } from '@/services/clubs.service';
 
 const FeaturedClubs = () => {
-  // Show clubs that are currently recruiting
-  const featuredClubs = mockClubs.filter((club) => club.isRecruiting).slice(0, 4);
+  // Fetch recruiting clubs
+  const { data: clubsData, isLoading } = useQuery({
+    queryKey: ['clubs', 'recruiting'],
+    queryFn: async () => {
+      const result = await ClubsService.getRecruitingClubs();
+      if (result.error) throw result.error;
+      return result.data;
+    },
+  });
+
+  const featuredClubs = clubsData?.slice(0, 4) || [];
 
   return (
     <section className="py-16 md:py-24">
@@ -26,11 +37,28 @@ const FeaturedClubs = () => {
           </Button>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {featuredClubs.map((club) => (
-            <ClubCard key={club.id} club={club} />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="space-y-3">
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ))}
+          </div>
+        ) : featuredClubs.length > 0 ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {featuredClubs.map((club) => (
+              <ClubCard key={club.id} club={club} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            현재 모집 중인 동아리가 없습니다.
+          </div>
+        )}
       </div>
     </section>
   );

@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Menu, X, Users, Settings, LogOut, Shield, UserPlus, Building2 } from 'lucide-react';
+import { Menu, X, Users, Settings, LogOut, Shield, UserPlus, Building2, UserCog } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -116,6 +116,18 @@ const Header = () => {
                     </div>
                   </DropdownMenuLabel>
 
+                  <DropdownMenuSeparator />
+
+                  {/* 역할 변경 신청 - 일반 사용자와 동아리 관리자만 */}
+                  {(user.role === 'user' || user.role === 'club_admin') && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/role-change/request" className="cursor-pointer">
+                        <UserCog className="mr-2 h-4 w-4" />
+                        역할 변경 신청
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+
                   {(user.role === 'admin' || user.role === 'club_admin') && (
                     <>
                       <DropdownMenuSeparator />
@@ -215,6 +227,16 @@ const Header = () => {
                       {user.role === 'user' && '일반 사용자'}
                     </p>
                   </div>
+
+                  {/* 역할 변경 신청 - 일반 사용자와 동아리 관리자만 */}
+                  {(user.role === 'user' || user.role === 'club_admin') && (
+                    <Button variant="ghost" asChild className="justify-start">
+                      <Link to="/role-change/request" onClick={() => setIsMenuOpen(false)}>
+                        <UserCog className="mr-2 h-4 w-4" />
+                        역할 변경 신청
+                      </Link>
+                    </Button>
+                  )}
 
                   {user.role === 'admin' && (
                     <>

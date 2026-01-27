@@ -3,10 +3,10 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Users, MapPin, Calendar, ArrowRight } from 'lucide-react';
-import type { Club } from '@/data/mockData';
+import type { ClubWithCategory } from '@/types/database.types';
 
 interface ClubCardProps {
-  club: Club;
+  club: ClubWithCategory;
 }
 
 const ClubCard = ({ club }: ClubCardProps) => {
@@ -16,14 +16,10 @@ const ClubCard = ({ club }: ClubCardProps) => {
       <div className="relative h-32 hero-gradient">
         <div className="absolute inset-0 flex items-center justify-center">
           <span className="text-5xl opacity-30">
-            {club.category === '학술' && '📚'}
-            {club.category === '예술' && '🎨'}
-            {club.category === '음악' && '🎵'}
-            {club.category === '스포츠' && '⚽'}
-            {club.category === '봉사' && '💝'}
+            {club.category_icon || '🎯'}
           </span>
         </div>
-        {club.isRecruiting && (
+        {club.is_recruiting && (
           <Badge className="absolute top-3 right-3 bg-[hsl(var(--badge-recruitment))] text-[hsl(var(--badge-recruitment-foreground))]">
             모집중
           </Badge>
@@ -34,7 +30,7 @@ const ClubCard = ({ club }: ClubCardProps) => {
         <div className="flex items-start justify-between gap-2">
           <div>
             <Badge variant="secondary" className="mb-2">
-              {club.category}
+              {club.category_name || '기타'}
             </Badge>
             <h3 className="font-semibold text-lg group-hover:text-accent transition-colors">
               {club.name}
@@ -43,24 +39,28 @@ const ClubCard = ({ club }: ClubCardProps) => {
         </div>
 
         <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-          {club.shortDescription}
+          {club.short_description}
         </p>
 
         <div className="mt-4 space-y-1.5 text-sm text-muted-foreground">
-          {club.memberCount && (
+          {club.member_count && (
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              <span>{club.memberCount}명</span>
+              <span>{club.member_count}명</span>
             </div>
           )}
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
-            <span>{club.clubRoom}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            <span>{club.regularSchedule}</span>
-          </div>
+          {club.club_room && (
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              <span>{club.club_room}</span>
+            </div>
+          )}
+          {club.regular_schedule && (
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              <span>{club.regular_schedule}</span>
+            </div>
+          )}
         </div>
       </CardContent>
 

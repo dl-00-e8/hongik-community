@@ -1,10 +1,12 @@
 import { useParams, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import Layout from '@/components/layout/Layout';
 import ActivityFeed from '@/components/clubs/ActivityFeed';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   ArrowLeft,
   Calendar,
@@ -14,19 +16,62 @@ import {
   Clock,
   Instagram,
   Users,
+  AlertCircle,
 } from 'lucide-react';
-import { mockClubs, mockActivities } from '@/data/mockData';
+import { ClubsService } from '@/services/clubs.service';
+import { mockActivities } from '@/data/mockData';
 
 const ClubDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const club = mockClubs.find((c) => c.id === id);
+
+  // Fetch club details
+  const { data: club, isLoading, error } = useQuery({
+    queryKey: ['club', id],
+    queryFn: async () => {
+      if (!id) throw new Error('Club ID is required');
+      const result = await ClubsService.getClubById(id);
+      if (result.error) throw result.error;
+      return result.data;
+    },
+    enabled: !!id,
+  });
+
+  // TODO: Replace with actual activities service
   const activities = mockActivities.filter((a) => a.clubId === id);
 
-  if (!club) {
+  if (isLoading) {
+    return (
+      <Layout>
+        <section className="hero-gradient py-12 md:py-16">
+          <div className="container">
+            <Skeleton className="h-8 w-24 mb-4" />
+            <Skeleton className="h-10 w-48 mb-2" />
+            <Skeleton className="h-6 w-96" />
+          </div>
+        </section>
+        <div className="container py-8">
+          <div className="grid gap-8 lg:grid-cols-3">
+            <div className="lg:col-span-2 space-y-4">
+              <Skeleton className="h-96 w-full" />
+            </div>
+            <div className="space-y-4">
+              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-48 w-full" />
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error || !club) {
     return (
       <Layout>
         <div className="container py-16 text-center">
-          <h1 className="text-2xl font-bold mb-4">동아리를 찾을 수 없습니다</h1>
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h1 className="text-2xl font-bold mb-4">
+            {error ? '동아리 정보를 불러오는 중 오류가 발생했습니다' : '동아리를 찾을 수 없습니다'}
+          </h1>
           <Button asChild>
             <Link to="/clubs">목록으로 돌아가기</Link>
           </Button>
@@ -131,9 +176,9 @@ const ClubDetail = () => {
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <Badge variant="secondary" className="bg-white/20 text-primary-foreground border-0">
-                  {club.category}
+                  {club.category_name || '기타'}
                 </Badge>
-                {club.isRecruiting && (
+                {club.is_recruiting && (
                   <Badge className="bg-[hsl(var(--badge-recruitment))] text-[hsl(var(--badge-recruitment-foreground))]">
                     모집중
                   </Badge>
@@ -143,11 +188,11 @@ const ClubDetail = () => {
                 {club.name}
               </h1>
               <p className="text-primary-foreground/80 text-lg">
-                {club.shortDescription}
+                {club.short_description}
               </p>
             </div>
 
-            {club.isRecruiting && (
+            {club.is_recruiting && (
               <Button
                 size="lg"
                 className="bg-accent hover:bg-accent/90 text-accent-foreground"
@@ -207,44 +252,48 @@ const ClubDetail = () => {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">동아리방</p>
-                    <p className="font-medium">{club.clubRoom}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">정규 모임</p>
-                    <p className="font-medium">{club.regularSchedule}</p>
-                  </div>
-                </div>
-
-                {club.memberCount && (
+                {club.club_room && (
                   <div className="flex items-start gap-3">
-                    <Users className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <div>
-                      <p className="text-sm text-muted-foreground">회원 수</p>
-                      <p className="font-medium">{club.memberCount}명</p>
+                      <p className="text-sm text-muted-foreground">동아리방</p>
+                      <p className="font-medium">{club.club_room}</p>
                     </div>
                   </div>
                 )}
 
-                {club.instagramHandle && (
+                {club.regular_schedule && (
+                  <div className="flex items-start gap-3">
+                    <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">정규 모임</p>
+                      <p className="font-medium">{club.regular_schedule}</p>
+                    </div>
+                  </div>
+                )}
+
+                {club.member_count && (
+                  <div className="flex items-start gap-3">
+                    <Users className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">회원 수</p>
+                      <p className="font-medium">{club.member_count}명</p>
+                    </div>
+                  </div>
+                )}
+
+                {club.instagram_handle && (
                   <div className="flex items-start gap-3">
                     <Instagram className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <div>
                       <p className="text-sm text-muted-foreground">Instagram</p>
                       <a
-                        href={`https://instagram.com/${club.instagramHandle}`}
+                        href={`https://instagram.com/${club.instagram_handle}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="font-medium text-accent hover:underline"
                       >
-                        @{club.instagramHandle}
+                        @{club.instagram_handle}
                       </a>
                     </div>
                   </div>
@@ -253,37 +302,41 @@ const ClubDetail = () => {
             </Card>
 
             {/* Recruitment Info Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">모집 정보</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">모집 기간</p>
-                    <p className="font-medium">
-                      {formatDate(club.recruitmentStart)} ~{' '}
-                      {formatDate(club.recruitmentEnd)}
-                    </p>
-                  </div>
-                </div>
+            {(club.recruitment_start || club.recruitment_end) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">모집 정보</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {club.recruitment_start && club.recruitment_end && (
+                    <div className="flex items-start gap-3">
+                      <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">모집 기간</p>
+                        <p className="font-medium">
+                          {formatDate(club.recruitment_start)} ~{' '}
+                          {formatDate(club.recruitment_end)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
-                {club.isRecruiting ? (
-                  <div className="p-3 rounded-lg bg-[hsl(var(--badge-recruitment))]/10 text-center">
-                    <p className="text-sm font-medium text-[hsl(var(--badge-recruitment))]">
-                      현재 모집 중입니다!
-                    </p>
-                  </div>
-                ) : (
-                  <div className="p-3 rounded-lg bg-muted text-center">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      모집이 종료되었습니다
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  {club.is_recruiting ? (
+                    <div className="p-3 rounded-lg bg-[hsl(var(--badge-recruitment))]/10 text-center">
+                      <p className="text-sm font-medium text-[hsl(var(--badge-recruitment))]">
+                        현재 모집 중입니다!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-lg bg-muted text-center">
+                      <p className="text-sm font-medium text-muted-foreground">
+                        모집이 종료되었습니다
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
