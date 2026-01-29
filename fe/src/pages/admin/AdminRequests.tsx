@@ -70,8 +70,8 @@ const AdminRequests = () => {
         .from('club_admin_requests')
         .select(`
           *,
-          users (name, email),
-          clubs (name)
+          users!user_id (name, email),
+          clubs!club_id (name)
         `)
         .order('created_at', { ascending: false });
 

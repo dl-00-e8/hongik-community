@@ -57,13 +57,13 @@ export const roleChangeService = {
       .select(
         `
         *,
-        user:users!role_change_requests_user_id_fkey (
+        user:users!user_id (
           id,
           name,
           email,
           role
         ),
-        club:clubs (
+        club:clubs!club_id (
           id,
           name
         )
@@ -87,13 +87,13 @@ export const roleChangeService = {
       .select(
         `
         *,
-        user:users!role_change_requests_user_id_fkey (
+        user:users!user_id (
           id,
           name,
           email,
           role
         ),
-        club:clubs (
+        club:clubs!club_id (
           id,
           name
         )
@@ -119,7 +119,7 @@ export const roleChangeService = {
     // 트랜잭션으로 처리: 신청 승인 + 사용자 역할 업데이트
     const { data: request, error: fetchError } = await supabase
       .from('role_change_requests')
-      .select('*, user:users!role_change_requests_user_id_fkey(id, role)')
+      .select('*, user:users!user_id(id, role)')
       .eq('id', requestId)
       .single();
 
