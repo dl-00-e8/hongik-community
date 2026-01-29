@@ -16,6 +16,8 @@ import CreateClub from "./pages/admin/CreateClub";
 import AdminRequests from "./pages/admin/AdminRequests";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import RoleChangeRequest from "./pages/RoleChangeRequest";
+import ClubManageSelect from "./pages/club/ClubManageSelect";
+import ClubManage from "./pages/club/ClubManage";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +68,24 @@ const App = () => (
               element={
                 <ProtectedRoute requiredRole="admin">
                   <AdminRequests />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Club Admin Routes - Protected */}
+            <Route
+              path="/club/manage"
+              element={
+                <ProtectedRoute requiredRole="club_admin">
+                  <ClubManageSelect />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/club/manage/:clubId"
+              element={
+                <ProtectedRoute requiredRole="club_admin">
+                  <ClubManage />
                 </ProtectedRoute>
               }
             />

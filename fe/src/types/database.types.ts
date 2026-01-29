@@ -209,6 +209,29 @@ export interface Database {
           updated_at?: string;
         };
       };
+      club_admins: {
+        Row: {
+          id: string;
+          user_id: string;
+          club_id: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          club_id: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          club_id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
     Views: {
       clubs_with_categories: {
@@ -276,6 +299,10 @@ export type ClubMemberUpdate = Database['public']['Tables']['club_members']['Upd
 export type ClubAdminRequest = Database['public']['Tables']['club_admin_requests']['Row'];
 export type ClubAdminRequestInsert = Database['public']['Tables']['club_admin_requests']['Insert'];
 export type ClubAdminRequestUpdate = Database['public']['Tables']['club_admin_requests']['Update'];
+
+export type ClubAdmin = Database['public']['Tables']['club_admins']['Row'];
+export type ClubAdminInsert = Database['public']['Tables']['club_admins']['Insert'];
+export type ClubAdminUpdate = Database['public']['Tables']['club_admins']['Update'];
 
 // Helper types for views
 export type ClubWithCategory = Database['public']['Views']['clubs_with_categories']['Row'];
