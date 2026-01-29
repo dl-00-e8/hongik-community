@@ -1,323 +1,184 @@
-# 🎉 데이터베이스 구현 완료 요약
+# 여러 동아리 관리 기능 구현 완료
 
-홍익 커뮤니티 프로젝트의 완전한 데이터베이스 설계 및 연결 코드가 구현되었습니다.
+## 변경 사항 요약
 
-## ✅ 완료된 작업
+### 1. 데이터베이스
+- ✅ `club_admins` 중간 테이블 추가 (다대다 관계)
+- ✅ RLS 정책 설정
+- ✅ 기존 `users.club_id` 데이터 자동 마이그레이션
 
-### 1. 데이터베이스 스키마 (`supabase/schema.sql`)
+### 2. 새로운 파일
 
-완전한 PostgreSQL 스키마가 생성되었습니다:
+#### 데이터베이스 마이그레이션
+- `supabase/migrations/add_club_admins.sql`
 
-- **5개 테이블**: users, categories, clubs, club_activities, club_members
-- **2개 뷰**: clubs_with_categories, activities_with_clubs
-- **RLS 정책**: 역할 기반 접근 제어
-- **트리거**: 자동 updated_at 업데이트, 멤버 수 자동 계산
-- **함수**: 모집 기간 체크, 멤버 수 업데이트
-- **인덱스**: 성능 최적화를 위한 15개 이상의 인덱스
+#### 타입 정의
+- `src/types/database.types.ts` (ClubAdmin 타입 추가)
 
-### 2. TypeScript 타입 정의 (`src/types/database.types.ts`)
+#### 훅
+- `src/hooks/useClubAdmins.ts`
+  - `useManagedClubs()` - 사용자가 관리하는 동아리 목록
+  - `useCanManageClub()` - 특정 동아리 관리 권한 확인
+  - `useClubAdmins()` - 동아리의 관리자 목록 (admin용)
+  - `useAddClubAdmin()` - 관리자 추가 (admin용)
+  - `useRemoveClubAdmin()` - 관리자 제거 (admin용)
 
-모든 테이블과 뷰에 대한 완전한 타입 정의:
+#### 페이지
+- `src/pages/club/ClubManageSelect.tsx` - 동아리 선택 페이지
+- `src/pages/club/ClubManage.tsx` - 수정 (URL 파라미터로 clubId 받음)
+
+#### 문서
+- `MULTI_CLUB_ADMIN_SETUP.md` - 여러 동아리 관리 설정 가이드
+- `CLUB_MANAGE_SETUP.md` - 업데이트 (새 플로우 반영)
+- `IMPLEMENTATION_SUMMARY.md` - 이 파일
+
+### 3. 수정된 파일
+- `src/App.tsx` - 라우팅 추가
+- `src/pages/club/ClubManage.tsx` - URL 파라미터 사용, 권한 검증
+- `src/components/club/ActivityItem.tsx` - `is_instagram` 필드 사용
+- `src/types/database.types.ts` - ClubAdmin 타입 추가
+
+## 사용자 플로우
+
+### 이전 (단일 동아리)
+```
+로그인 → /club/manage → 관리 페이지 (users.club_id 사용)
+```
+
+### 현재 (여러 동아리)
+```
+로그인 → /club/manage → 동아리 선택 페이지
+         ↓
+         동아리 선택
+         ↓
+         /club/manage/:clubId → 관리 페이지
+         ↓
+         뒤로 가기 (←)
+         ↓
+         동아리 선택 페이지로 복귀
+```
+
+## 라우팅 구조
 
 ```typescript
-// 테이블 타입
-export type User = Database['public']['Tables']['users']['Row'];
-export type Club = Database['public']['Tables']['clubs']['Row'];
-export type ClubActivity = Database['public']['Tables']['club_activities']['Row'];
-export type Category = Database['public']['Tables']['categories']['Row'];
-export type ClubMember = Database['public']['Tables']['club_members']['Row'];
-
-// 뷰 타입
-export type ClubWithCategory = Database['public']['Views']['clubs_with_categories']['Row'];
-export type ActivityWithClub = Database['public']['Views']['activities_with_clubs']['Row'];
+/club/manage              → ClubManageSelect (동아리 선택)
+/club/manage/:clubId      → ClubManage (특정 동아리 관리)
 ```
 
-### 3. 서비스 레이어
+둘 다 `club_admin` 이상 권한 필요 (ProtectedRoute)
 
-#### `src/services/clubs.service.ts`
-동아리 관련 모든 CRUD 작업:
-- `getAllClubs()` - 모든 동아리 조회 (필터링 지원)
-- `getClubById()` - ID로 동아리 조회
-- `createClub()` - 동아리 생성
-- `updateClub()` - 동아리 수정
-- `deleteClub()` - 동아리 삭제
-- `searchClubs()` - 동아리 검색
-- `getRecruitingClubs()` - 모집 중인 동아리
-- `getClubStatistics()` - 통계 조회
+## 권한 시스템
 
-#### `src/services/activities.service.ts`
-활동 피드 관련 모든 작업:
-- `getAllActivities()` - 모든 활동 조회
-- `getActivitiesByClub()` - 동아리별 활동
-- `createActivity()` - 활동 생성
-- `updateActivity()` - 활동 수정
-- `deleteActivity()` - 활동 삭제
-- `getRecentActivities()` - 최근 활동
-- `getInstagramActivities()` - Instagram 활동
-- `batchCreateActivities()` - 대량 생성
+### 1. 페이지 접근 권한
+- `ProtectedRoute`가 `club_admin` 또는 `admin` 역할 확인
 
-#### `src/services/categories.service.ts`
-카테고리 관리:
-- `getAllCategories()` - 모든 카테고리 조회
-- `getCategoryById()` - ID로 카테고리 조회
-- `createCategory()` - 카테고리 생성
-- `updateCategory()` - 카테고리 수정
-- `deleteCategory()` - 카테고리 삭제
-- `reorderCategories()` - 카테고리 순서 변경
-- `getCategoriesWithClubCount()` - 동아리 수와 함께 조회
+### 2. 동아리 관리 권한
+- `useCanManageClub` 훅이 확인:
+  - `admin` → 모든 동아리 관리 가능
+  - `club_admin` → `club_admins` 테이블에 레코드가 있는 동아리만
 
-### 4. React Hooks (TanStack Query 통합)
+### 3. RLS 정책
+- 데이터베이스 레벨에서 추가 보호
+- 사용자는 자신이 관리하는 동아리 데이터만 수정 가능
 
-#### `src/hooks/useClubs.ts`
-- `useClubs()` - 동아리 목록
-- `useClub()` - 단일 동아리
-- `useRecruitingClubs()` - 모집 중인 동아리
-- `useSearchClubs()` - 검색
-- `useClubStatistics()` - 통계
-- `useCreateClub()` - 생성 mutation
-- `useUpdateClub()` - 수정 mutation
-- `useDeleteClub()` - 삭제 mutation
+## 설정 방법
 
-#### `src/hooks/useActivities.ts`
-- `useActivities()` - 활동 목록
-- `useClubActivities()` - 동아리별 활동
-- `useRecentActivities()` - 최근 활동
-- `useInstagramActivities()` - Instagram 활동
-- `useCreateActivity()` - 생성 mutation
-- `useBatchCreateActivities()` - 대량 생성 mutation
-- `useUpdateActivity()` - 수정 mutation
-- `useDeleteActivity()` - 삭제 mutation
+### 최소 설정 (5분)
 
-#### `src/hooks/useCategories.ts`
-- `useCategories()` - 카테고리 목록
-- `useCategory()` - 단일 카테고리
-- `useCategoriesWithClubCount()` - 동아리 수 포함
-- `useCreateCategory()` - 생성 mutation
-- `useUpdateCategory()` - 수정 mutation
-- `useDeleteCategory()` - 삭제 mutation
-- `useReorderCategories()` - 순서 변경 mutation
+1. **DB 마이그레이션 실행**
+   ```sql
+   -- Supabase SQL Editor에서 실행
+   -- 파일: supabase/migrations/add_club_admins.sql
+   ```
 
-### 5. 데이터 마이그레이션 스크립트
+2. **테스트 계정 생성**
+   ```sql
+   -- 사용자를 club_admin으로 설정
+   UPDATE users SET role = 'club_admin'
+   WHERE email = 'test@g.hongik.ac.kr';
 
-#### `src/scripts/migrate-mock-data.ts`
-mockData.ts의 샘플 데이터를 Supabase로 자동 마이그레이션:
-- Categories 마이그레이션 (중복 체크)
-- Clubs 마이그레이션 (중복 체크)
-- Activities 마이그레이션 (중복 체크)
+   -- 동아리 관리 권한 추가
+   INSERT INTO club_admins (user_id, club_id)
+   VALUES (
+     (SELECT id FROM users WHERE email = 'test@g.hongik.ac.kr'),
+     '동아리-UUID'
+   );
+   ```
 
-### 6. 문서화
+3. **테스트**
+   - 로그인 후 `/club/manage` 접속
+   - 동아리 선택 페이지 확인
+   - 동아리 클릭하여 관리 페이지 진입
 
-#### `DATABASE_GUIDE.md`
-완전한 데이터베이스 사용 가이드:
-- 데이터베이스 구조 설명
-- 초기 설정 방법
-- 스키마 적용 방법
-- 데이터 마이그레이션 방법
-- 서비스 레이어 사용 예제
-- React Hooks 사용 예제
-- 트러블슈팅 가이드
+### 완전 설정 (Storage 포함)
 
-## 🚀 시작하기
+위 단계 + Storage 설정 (기존 CLUB_MANAGE_SETUP.md 참조)
 
-### 1단계: 의존성 설치
+## 주요 개선점
 
-```bash
-npm install
-```
+### 1. 확장성
+- 한 사용자가 무제한 동아리 관리 가능
+- 한 동아리에 여러 관리자 할당 가능
 
-### 2단계: 환경 변수 설정
+### 2. 유연성
+- 관리자 추가/제거가 간단 (SQL INSERT/DELETE)
+- 기존 `users.club_id`는 하위 호환성 유지
 
-`.env` 파일 생성:
+### 3. 보안
+- RLS 정책으로 데이터 보호
+- 프론트엔드 + 백엔드 이중 권한 검증
 
-```env
-VITE_SUPABASE_URL=your-supabase-url
-VITE_SUPABASE_ANON_KEY=your-anon-key
-```
+### 4. UX
+- 직관적인 동아리 선택 인터페이스
+- 여러 동아리 간 쉬운 전환
+- 뒤로 가기 버튼으로 자연스러운 네비게이션
 
-### 3단계: 스키마 적용
+## 빌드 상태
 
-Supabase 대시보드 → SQL Editor에서 `supabase/schema.sql` 실행
+✅ **빌드 성공** - TypeScript 오류 없음
+✅ **타입 안정성** - 모든 타입 정의 완료
+✅ **RLS 정책** - 보안 정책 적용
 
-또는 Supabase MCP를 통해:
+## 다음 단계 (선택)
 
-```bash
-# Supabase MCP가 이미 연결되어 있으므로
-# Claude에게 "schema.sql을 Supabase에 적용해줘" 라고 요청
-```
+### Admin 대시보드 개선
+- 동아리별 관리자 목록 UI
+- 관리자 추가/제거 인터페이스
+- 관리 권한 로그 기록
 
-### 4단계: 샘플 데이터 마이그레이션
+### 알림 시스템
+- 관리자로 임명되었을 때 알림
+- 권한 제거 시 알림
 
-```bash
-npm run db:migrate
-```
-
-### 5단계: 개발 서버 실행
-
-```bash
-npm run dev
-```
-
-## 📁 새로 추가된 파일 목록
-
-```
-fe/
-├── supabase/
-│   └── schema.sql                          ⭐ NEW
-├── src/
-│   ├── types/
-│   │   └── database.types.ts               ✏️ UPDATED
-│   ├── services/
-│   │   ├── clubs.service.ts                ⭐ NEW
-│   │   ├── activities.service.ts           ⭐ NEW
-│   │   └── categories.service.ts           ⭐ NEW
-│   ├── hooks/
-│   │   ├── useClubs.ts                     ⭐ NEW
-│   │   ├── useActivities.ts                ⭐ NEW
-│   │   └── useCategories.ts                ⭐ NEW
-│   └── scripts/
-│       └── migrate-mock-data.ts            ⭐ NEW
-├── DATABASE_GUIDE.md                       ⭐ NEW
-├── IMPLEMENTATION_SUMMARY.md               ⭐ NEW
-└── package.json                            ✏️ UPDATED
-```
-
-## 💡 다음 단계
-
-### 1. 기존 컴포넌트를 Supabase 데이터로 전환
-
-예시: `src/pages/Clubs.tsx` 수정
-
-**변경 전:**
+### 세분화된 권한
 ```typescript
-import { mockClubs, categories } from '@/data/mockData';
-
-const Clubs = () => {
-  const filteredClubs = mockClubs.filter(...);
-  // ...
-}
+type ClubRole = 'owner' | 'editor' | 'viewer';
 ```
 
-**변경 후:**
-```typescript
-import { useClubs } from '@/hooks/useClubs';
-import { useCategories } from '@/hooks/useCategories';
+## 문제 해결
 
-const Clubs = () => {
-  const { data: clubs, isLoading } = useClubs({
-    categoryId: activeCategory !== 'all' ? activeCategory : undefined,
-    searchQuery: searchQuery,
-  });
-  const { data: categories } = useCategories();
+자세한 내용은 `MULTI_CLUB_ADMIN_SETUP.md`의 "문제 해결" 섹션 참조
 
-  if (isLoading) return <div>Loading...</div>;
-  // ...
-}
-```
+### 빠른 체크리스트
 
-### 2. 관리자 페이지 구현
+- [ ] `club_admins` 테이블이 생성되었는가?
+- [ ] RLS 정책이 활성화되었는가?
+- [ ] 사용자의 role이 `club_admin`인가?
+- [ ] `club_admins` 테이블에 레코드가 있는가?
+- [ ] Storage bucket `club-images`가 생성되었는가?
+- [ ] Storage RLS 정책이 설정되었는가?
 
-동아리 생성/수정/삭제 기능:
+## 참고 문서
 
-```typescript
-import { useCreateClub, useUpdateClub, useDeleteClub } from '@/hooks/useClubs';
+- `MULTI_CLUB_ADMIN_SETUP.md` - 여러 동아리 관리 설정 상세 가이드
+- `CLUB_MANAGE_SETUP.md` - 기본 설정 가이드 (Storage 포함)
+- `SUPABASE_SETUP.md` - 전체 Supabase 설정 가이드
 
-function AdminClubManagement() {
-  const createClub = useCreateClub();
-  const updateClub = useUpdateClub();
-  const deleteClub = useDeleteClub();
+## 기술 스택
 
-  // CRUD UI 구현
-}
-```
-
-### 3. 이미지 업로드 기능
-
-Supabase Storage 활용:
-
-```typescript
-import { supabase } from '@/lib/supabase';
-
-async function uploadImage(file: File) {
-  const { data, error } = await supabase.storage
-    .from('club-images')
-    .upload(`public/${Date.now()}_${file.name}`, file);
-
-  if (error) throw error;
-
-  const { data: { publicUrl } } = supabase.storage
-    .from('club-images')
-    .getPublicUrl(data.path);
-
-  return publicUrl;
-}
-```
-
-### 4. 실시간 업데이트 (선택사항)
-
-```typescript
-import { supabase } from '@/lib/supabase';
-import { useEffect } from 'react';
-
-function useRealtimeClubs() {
-  useEffect(() => {
-    const subscription = supabase
-      .channel('clubs')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'clubs'
-      }, (payload) => {
-        console.log('Change received!', payload);
-        // queryClient.invalidateQueries(['clubs']);
-      })
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-}
-```
-
-## 🎯 주요 기능
-
-### 자동 캐싱
-TanStack Query가 자동으로 데이터를 캐싱하여 불필요한 네트워크 요청을 줄입니다.
-
-### 타입 안전성
-TypeScript를 통해 컴파일 타임에 타입 오류를 잡을 수 있습니다.
-
-### RLS (Row Level Security)
-데이터베이스 레벨에서 보안이 적용되어 안전합니다:
-- 일반 사용자: 조회만 가능
-- 동아리 관리자: 자신의 동아리만 수정 가능
-- 시스템 관리자: 모든 데이터 관리 가능
-
-### 자동 업데이트
-트리거를 통해 자동으로 처리:
-- `updated_at` 필드 자동 업데이트
-- 동아리 멤버 수 자동 계산
-
-### 성능 최적화
-- 인덱스를 통한 빠른 검색
-- 뷰를 통한 조인 쿼리 최적화
-- TanStack Query의 스마트 캐싱
-
-## 🔗 관련 문서
-
-- [DATABASE_GUIDE.md](./DATABASE_GUIDE.md) - 상세 사용 가이드
-- [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) - Supabase 초기 설정
-- [CLAUDE.md](../CLAUDE.md) - 프로젝트 전체 개요
-
-## 📞 도움이 필요하신가요?
-
-- **스키마 문제**: `supabase/schema.sql` 확인
-- **타입 오류**: `src/types/database.types.ts` 확인
-- **서비스 사용법**: `DATABASE_GUIDE.md` 참고
-- **React 통합**: hooks 파일의 JSDoc 주석 참고
-
----
-
-**구현 완료**: 2026-01-25
-**버전**: 1.0.0
-**상태**: ✅ Production Ready
+- React 18.3.1
+- React Router DOM 6.30.1 (동적 라우팅)
+- TanStack Query 5.83.0 (서버 상태 관리)
+- Supabase 2.90.1 (BaaS)
+- TypeScript 5.8.3
+- shadcn/ui (UI 컴포넌트)
