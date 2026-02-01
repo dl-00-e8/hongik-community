@@ -1,10 +1,10 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Instagram, Image } from 'lucide-react';
-import type { Activity } from '@/data/mockData';
+import type { ActivityWithClub } from '@/types/database.types';
 
 interface ActivityFeedProps {
-  activities: Activity[];
+  activities: ActivityWithClub[];
 }
 
 const ActivityFeed = ({ activities }: ActivityFeedProps) => {
@@ -22,15 +22,15 @@ const ActivityFeed = ({ activities }: ActivityFeedProps) => {
         <Card key={activity.id} className="overflow-hidden group">
           <div className="relative aspect-square overflow-hidden">
             <img
-              src={activity.imageUrl}
-              alt={activity.caption}
+              src={activity.image_url}
+              alt={activity.caption || '동아리 활동'}
               className="object-cover w-full h-full transition-transform group-hover:scale-105"
             />
             <Badge
               variant="secondary"
               className="absolute top-2 right-2 flex items-center gap-1"
             >
-              {activity.isInstagram ? (
+              {activity.is_instagram ? (
                 <>
                   <Instagram className="h-3 w-3" />
                   Instagram
@@ -44,9 +44,10 @@ const ActivityFeed = ({ activities }: ActivityFeedProps) => {
             </Badge>
           </div>
           <CardContent className="p-4">
-            <p className="text-sm line-clamp-2">{activity.caption}</p>
+            <p className="text-sm font-medium text-primary mb-1">{activity.club_name}</p>
+            <p className="text-sm line-clamp-2">{activity.caption || '활동 기록'}</p>
             <p className="text-xs text-muted-foreground mt-2">
-              {new Date(activity.createdAt).toLocaleDateString('ko-KR')}
+              {activity.created_at ? new Date(activity.created_at).toLocaleDateString('ko-KR') : ''}
             </p>
           </CardContent>
         </Card>

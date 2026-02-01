@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import ActivityFeed from '@/components/clubs/ActivityFeed';
-import { ArrowRight } from 'lucide-react';
-import { mockActivities } from '@/data/mockData';
+import { ArrowRight, Loader2 } from 'lucide-react';
+import { useRecentActivities } from '@/hooks/useActivities';
 
 const RecentActivities = () => {
-  // Show the most recent 6 activities
-  const recentActivities = mockActivities.slice(0, 6);
+  // Fetch the most recent 6 activities from database
+  const { data: recentActivities, isLoading, error } = useRecentActivities(6);
 
   return (
     <section className="py-16 md:py-24">
@@ -26,7 +26,17 @@ const RecentActivities = () => {
           </Button>
         </div>
 
-        <ActivityFeed activities={recentActivities} />
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : error ? (
+          <div className="text-center py-12 text-muted-foreground">
+            활동을 불러오는 데 실패했습니다.
+          </div>
+        ) : (
+          <ActivityFeed activities={recentActivities || []} />
+        )}
       </div>
     </section>
   );
