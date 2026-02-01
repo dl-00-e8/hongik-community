@@ -15,7 +15,7 @@ const Footer = () => {
               <span className="text-xl font-bold">총동아리연합회</span>
             </Link>
             <p className="text-primary-foreground/80 text-sm leading-relaxed">
-              대학교 총동아리연합회는 모든 연합동아리를 지원하고
+              홍익대학교 총동아리연합회는 모든 연합동아리를 지원하고
               학생들의 다양한 활동을 장려합니다.
             </p>
           </div>
@@ -63,7 +63,7 @@ const Footer = () => {
         </div>
 
         <div className="mt-8 pt-8 border-t border-primary-foreground/20 text-center text-sm text-primary-foreground/60">
-          © 2024 총동아리연합회. All rights reserved.
+          © 2026 홍익대학교 총동아리연합회. All rights reserved.
         </div>
       </div>
     </footer>
