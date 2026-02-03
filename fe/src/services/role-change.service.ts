@@ -127,23 +127,15 @@ export const roleChangeService = {
       throw new Error('Request not found');
     }
 
-    // 1. 사용자 역할 업데이트
-    const updateData: any = {
-      role: request.requested_role,
-    };
+    // 1. 사용자 역할 업데이트 (DB + JWT metadata 동시 업데이트)
+    const { error: roleUpdateError } = await supabase.rpc('update_user_role', {
+      target_user_id: request.user_id,
+      new_role: request.requested_role,
+      new_club_id: request.requested_role === 'club_admin' ? request.club_id : null,
+    });
 
-    // 동아리 관리자로 승인하는 경우 club_id 설정
-    if (request.requested_role === 'club_admin' && request.club_id) {
-      updateData.club_id = request.club_id;
-    }
-
-    const { error: userUpdateError } = await supabase
-      .from('users')
-      .update(updateData)
-      .eq('id', request.user_id);
-
-    if (userUpdateError) {
-      throw new Error(`Failed to update user role: ${userUpdateError.message}`);
+    if (roleUpdateError) {
+      throw new Error(`Failed to update user role: ${roleUpdateError.message}`);
     }
 
     // 2. 신청 상태 업데이트

@@ -74,6 +74,16 @@ const CreateClub = () => {
     setIsLoading(true);
 
     try {
+      // 먼저 세션 확인
+      const { data: sessionData } = await supabase.auth.getSession();
+      console.log('[CreateClub] Session check:', sessionData.session ? 'exists' : 'none');
+
+      if (!sessionData.session) {
+        throw new Error('로그인이 필요합니다. 다시 로그인해주세요.');
+      }
+
+      console.log('[CreateClub] Attempting insert...');
+
       const { error } = await supabase.from('clubs').insert({
         name: data.name,
         category_id: data.category_id,
@@ -88,7 +98,19 @@ const CreateClub = () => {
         member_count: 0,
       });
 
-      if (error) throw error;
+      console.log('[CreateClub] Insert result:', error ? `Error: ${error.message}` : 'Success');
+
+      if (error) {
+        // 중복 이름 오류 처리
+        if (error.code === '23505' || error.message.includes('duplicate')) {
+          throw new Error('이미 동일한 이름의 동아리가 존재합니다. 다른 이름을 사용해주세요.');
+        }
+        // RLS 권한 오류 처리
+        if (error.code === '42501' || error.message.includes('policy')) {
+          throw new Error('동아리 생성 권한이 없습니다. 관리자 권한을 확인해주세요.');
+        }
+        throw new Error(error.message || '동아리 개설에 실패했습니다.');
+      }
 
       toast({
         title: '동아리 개설 완료',
@@ -97,10 +119,16 @@ const CreateClub = () => {
 
       navigate('/clubs');
     } catch (error) {
-      console.error('Club creation error:', error);
+      console.error('[CreateClub] Error:', error);
+
+      let errorMessage = '동아리 개설에 실패했습니다.';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
       toast({
         title: '동아리 개설 실패',
-        description: error instanceof Error ? error.message : '동아리 개설에 실패했습니다.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {

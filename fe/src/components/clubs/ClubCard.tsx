@@ -43,7 +43,7 @@ const ClubCard = ({ club }: ClubCardProps) => {
         </p>
 
         <div className="mt-4 space-y-1.5 text-sm text-muted-foreground">
-          {club.member_count && (
+          {club.member_count != null && club.member_count > 0 && (
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <span>{club.member_count}명</span>

@@ -272,7 +272,7 @@ const ClubDetail = () => {
                   </div>
                 )}
 
-                {club.member_count && (
+                {club.member_count != null && club.member_count > 0 && (
                   <div className="flex items-start gap-3">
                     <Users className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <div>

@@ -80,13 +80,13 @@ const Clubs = () => {
           <h1 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-2">
             동아리 목록
           </h1>
-          <p className="text-primary-foreground/80">
+          <div className="text-primary-foreground/80">
             {isLoading ? (
               <Skeleton className="h-5 w-48" />
             ) : (
-              `총 ${totalClubs}개의 연합동아리가 있습니다`
+              <p>총 {totalClubs}개의 연합동아리가 있습니다</p>
             )}
-          </p>
+          </div>
         </div>
       </section>
 
