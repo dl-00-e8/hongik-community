@@ -123,3 +123,6 @@ fabric.properties
 # IDE
 .idea/
 .idea/**
+
+# omc
+.omc/
